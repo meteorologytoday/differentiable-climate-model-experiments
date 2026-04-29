@@ -16,7 +16,7 @@ cfg = Config(
         ),
         Stage(
             method="RMSProp",
-            iterations=20,
+            iterations=50,
             callback_interval=10,
             optimizer_kwargs=dict(
                 memory_factor=0.9,
