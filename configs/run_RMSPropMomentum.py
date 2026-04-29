@@ -20,7 +20,7 @@ cfg = Config(
             callback_interval=10,
             optimizer_kwargs=dict(
                 memory_factor=0.9,
-                learning_rate=1e-2,
+                learning_rate=5e-2,
                 divide_by_zero_tolerance=1e-8,
             ),
         ),
