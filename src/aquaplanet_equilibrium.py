@@ -165,7 +165,7 @@ def loss_function(sst):
 
 
 def generic_output_callback(history, i, method: str, loop_idx: int, stage_idx: int):
-    output_file = cfg.output_dir_training / f"training_result-iter_{i:05d}-stage_{stage_idx:02d}_{method}-loop_{loop_idx:03d}.nc"
+    output_file = cfg.output_dir_training / f"training_result-loop_{loop_idx:03d}-stage_{stage_idx:02d}-iter_{i:03d}-{method}.nc"
 
     data_vars = dict(
         loss = (("iteration",), history["loss"]),
