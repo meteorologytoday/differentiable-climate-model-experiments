@@ -1,8 +1,9 @@
-from configs.base import Config
+from configs.base import Config, Stage
 
 cfg = Config(
-    optimization_method="LBFGS",
-    optimization_iterations=1000,
-    optimization_callback_interval=10,
-    optimizer_kwargs={"learning_rate": 1e-1},
+    training_label="LBFGS",
+    stages=[
+        Stage("LBFGS", 1000, callback_interval=10, optimizer_kwargs={"learning_rate": 1e-1}),
+    ],
+    stage_loops=1,
 )

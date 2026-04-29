@@ -105,7 +105,6 @@ model = Coupler(
     mappers=dict(mapper=mapper),
 )
 
-# %%
 tree_tools.print_tree(model.get_info(), root="Model")
 initial_carry = model.initialize()
 
@@ -165,8 +164,8 @@ def loss_function(sst):
     return jnp.mean(jnp.mean(predictions["ocn"]["forcing"]["total_heat_flux"][-cfg.average_days:, :, :], axis=0)**2)
 
 
-def generic_output_callback(history, i, method: str):
-    output_file = cfg.output_dir_training / f"training_result-{i:05d}.nc"
+def generic_output_callback(history, i, method: str, loop_idx: int, stage_idx: int):
+    output_file = cfg.output_dir_training / f"training_result-loop_{loop_idx:02d}-stage_{stage_idx:02d}_{method}-{i:05d}.nc"
 
     data_vars = dict(
         loss = (("iteration",), history["loss"]),
@@ -200,31 +199,42 @@ def generic_output_callback(history, i, method: str):
 
     return jnp.all(jnp.isfinite(history["x"]))
 
-specialized_output_callback = functools.partial(
-    generic_output_callback,
-    method=cfg.optimization_method,
-)
-
-_optimizers = {
+_optimizer_classes = {
     "HamitonianMethod": HamitonianMethod,
     "RMSProp": RMSProp,
     "RMSPropMomentum": RMSPropMomentum,
     "LBFGS": LBFGS,
 }
 
-optimizer_fn = _optimizers[cfg.optimization_method]
-if optimizer_fn is None:
-    raise ValueError(f"Unknown optimization_method: '{cfg.optimization_method}'")
+for stage in cfg.stages:
+    if stage.method not in _optimizer_classes:
+        raise ValueError(f"Unknown optimization method: '{stage.method}'")
+
+# Build optimizer instances once so JIT-compiled step functions are reused across loops
+_optimizer_instances = [
+    _optimizer_classes[stage.method](loss_function, **stage.optimizer_kwargs)
+    for stage in cfg.stages
+]
 
 print("Running Optimization...")
 start_time = time.perf_counter()
-training_history = optimizer_fn(
-    initial_x=initial_sst,
-    loss_function=loss_function,
-    iterations=cfg.optimization_iterations,
-    callback=specialized_output_callback,
-    callback_interval=cfg.optimization_callback_interval,
-    **cfg.optimizer_kwargs,
-)
+current_x = initial_sst
+for loop_idx in range(cfg.stage_loops):
+    for stage_idx, (stage, optimizer) in enumerate(zip(cfg.stages, _optimizer_instances)):
+        print(f"Loop {loop_idx}, stage {stage_idx}: {stage.method} for {stage.iterations} iterations")
+        stage_callback = functools.partial(
+            generic_output_callback,
+            method=stage.method,
+            loop_idx=loop_idx,
+            stage_idx=stage_idx,
+        )
+        _final_carry, _ = optimizer(
+            initial_x=current_x,
+            iterations=stage.iterations,
+            callback=stage_callback,
+            callback_interval=stage.callback_interval,
+        )
+        current_x = _final_carry["x"]
+
 end_time = time.perf_counter()
 print(f"Cost of time: {end_time - start_time} seconds.")

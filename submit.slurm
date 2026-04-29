@@ -16,5 +16,5 @@ eval "$( /home/tienyiao/miniconda3/bin/conda shell.bash hook 2> /dev/null)"
 conda activate jax
 export PYTHONPATH=/home/tienyiao/projects_local/project_jax-esm/jem_repo/jax-gcm-fixed-solar-radiation:/home/tienyiao/projects_local/project_jax-esm/jem_repo/jax-esm/worktree/som-equilibrium
 
-python3 aquaplanet_equilibrium.py
+python3 aquaplanet_equilibrium.py --config ../configs/run_lbfgs.py
 

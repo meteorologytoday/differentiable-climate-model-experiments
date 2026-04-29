@@ -1,6 +1,14 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
+
+
+@dataclass
+class Stage:
+    method: str
+    iterations: int
+    callback_interval: int = 10
+    optimizer_kwargs: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -16,13 +24,14 @@ class Config:
     initial_condition_year: int = 1
 
     # Optimization
-    optimization_method: str = "LBFGS"
-    optimization_iterations: int = 1000
-    optimization_callback_interval: int = 10
-    optimizer_kwargs: Dict[str, Any] = field(default_factory=lambda: {"learning_rate": 1e-1})
+    stages: List[Stage] = field(default_factory=lambda: [
+        Stage("LBFGS", 1000, optimizer_kwargs={"learning_rate": 1e-1}),
+    ])
+    stage_loops: int = 1
 
     # Experiment identity — used to construct output directory names
     simulation_label: str = "02-04_aquaplanet_equilibrium_with_1year_spinup_sst"
+    training_label: str = "training"
 
     # Output
     output_root: Path = Path("experiment_set")
@@ -44,4 +53,4 @@ class Config:
 
     @property
     def output_dir_training(self) -> Path:
-        return self.output_dir / f"training_{self.optimization_method}"
+        return self.output_dir / f"training_{self.training_label}"
