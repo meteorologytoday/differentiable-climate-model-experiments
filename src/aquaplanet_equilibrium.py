@@ -82,7 +82,6 @@ mapper.add_mapping(
 )
 
 # Construct Model
-
 atm_model = jcm.model.Model(
     coords=get_speedy_coords(spectral_truncation=cfg.spectral_truncation),
     start_date=start_datetime,
@@ -154,18 +153,17 @@ else:
 
 
 # Define the Loss Function
+    
+print(f"Load spin-up file {str(target_spinup_checkpoint_file)}")
+adjusted_carry = ocp.load_pytree(target_spinup_checkpoint_file, initial_carry)
+initial_sst = jnp.mean(adjusted_carry["ocn"]["state"].sea_surface_temperature, axis=0)
+nlon = adjusted_carry["ocn"]["state"].sea_surface_temperature.shape[0]
 
 def loss_function(sst):
-    print(f"Load spin-up file {str(target_spinup_checkpoint_file)}")
-    adjusted_carry = ocp.load_pytree(target_spinup_checkpoint_file, initial_carry)
-    nlon = adjusted_carry["ocn"]["state"].sea_surface_temperature.shape[0]
     adjusted_carry["ocn"]["state"].sea_surface_temperature = jnp.repeat(sst[None, :], nlon, axis=0)
     _, predictions = training_trajectory_function(adjusted_carry)
     return jnp.mean(jnp.mean(predictions["ocn"]["forcing"]["total_heat_flux"][-cfg.average_days:, :, :], axis=0)**2)
 
-
-spinup_carry = ocp.load_pytree(target_spinup_checkpoint_file, initial_carry)
-initial_sst = jnp.mean(spinup_carry["ocn"]["state"].sea_surface_temperature, axis=0)
 
 def generic_output_callback(history, i, method: str):
     output_file = cfg.output_dir_training / f"training_result-{i:05d}.nc"
