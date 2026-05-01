@@ -4,10 +4,10 @@ import xarray as xr
 import numpy as np
 
 truth_year = 20
-exp_root = Path("/p/projects/poem/tienyiao/projects/differentiable_model/differentiable_experiments/experiment_set")
+exp_root = Path("./experiment_set")
 exp_name = "output_T31_02-04_aquaplanet_equilibrium_with_1year_spinup_sst_30days_avg"
-algo_name = "RMSPropMomentum"
-ds = xr.open_mfdataset(str(exp_root / exp_name / f"training_{algo_name:s}/training_result-*.nc"), engine="netcdf4", combine="nested", concat_dim="iteration").isel(iteration=slice(None, -10))
+algo_name = "Mixed_RMSProp_RMSPropMomentum"
+ds = xr.open_mfdataset(str(exp_root / exp_name / f"training_{algo_name:s}/training*.nc"), engine="netcdf4", combine="nested", concat_dim="iteration").isel(iteration=slice(None, -10))
 ds_truth = xr.open_mfdataset(str(exp_root / exp_name / "spinup/ocn-*.nc"), engine="netcdf4").isel(time=slice(360*truth_year-30, 360*truth_year)).mean(dim=["longitude", "time"])
 
 nlat = ds.dims["lat"]
