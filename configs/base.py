@@ -13,11 +13,11 @@ class Stage:
 
 @dataclass
 class Config:
-    # Required: experiment-specific factories (must precede fields with defaults).
-    # Each is a callable (ModelContext) -> experiment-specific object.
+    # Required fields (must precede fields with defaults).
     loss_fn_factory: Callable
     initial_x_factory: Callable
     output_callback_factory: Callable
+    simulation_label: str
 
     # Model
     spectral_truncation: int = 31
@@ -35,7 +35,6 @@ class Config:
     stage_loops: int = 1
 
     # Experiment identity — used to construct output directory names
-    simulation_label: str = "02-04_aquaplanet_equilibrium_with_1year_spinup_sst"
     training_label: str = "training"
 
     # Output

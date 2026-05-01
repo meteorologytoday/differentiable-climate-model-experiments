@@ -10,6 +10,7 @@ config = Config(
     loss_fn_factory=partial(seasonless_loss, average_days=average_days),
     initial_x_factory=seasonless_initial_x,
     output_callback_factory=standard_output_callback,
+    simulation_label="aquaplanet_equilibrium_with_1year_spinup_sst",
     training_trajectory_days=average_days + atmosphere_memory_days,
     training_label="LBFGS",
     stages=[
