@@ -41,7 +41,7 @@ _parser.add_argument("--config", type=str, required=True, help="Path to experime
 config = _load_config(_parser.parse_known_args()[0].config)
 
 spinup_trajectory_interval = jdt.to_timedelta(config.spinup_interval_days, "day")
-training_trajectory_interval = jdt.to_timedelta(config.atmosphere_memory_days + config.average_days, "day")
+training_trajectory_interval = jdt.to_timedelta(config.training_trajectory_days, "day")
 long_direct_simulation_time = jdt.to_timedelta(360 * config.spinup_total_years, "day")
 long_direct_simulation_iterations = int(long_direct_simulation_time / spinup_trajectory_interval)
 initial_condition_time = jdt.to_timedelta(360 * config.initial_condition_year, "day")

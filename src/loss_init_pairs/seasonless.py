@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 
 
-def seasonless_loss(context):
+def seasonless_loss(context, *, average_days, atmosphere_memory_days):
     """
     Loss factory for the zonally symmetric, seasonless equilibrium search.
 
@@ -13,7 +13,6 @@ def seasonless_loss(context):
     """
     carry = context.carry
     trajectory_fn = context.training_trajectory_function
-    average_days = context.config.average_days
 
     def loss(sst):
         nlon = carry["ocn"]["state"].sea_surface_temperature.shape[0]

@@ -1,7 +1,17 @@
+from functools import partial
 from configs.base import Config, Stage
+from loss_init_pairs.seasonless import seasonless_loss, seasonless_initial_x
+from callbacks import standard_output_callback
+
+average_days = 30
+atmosphere_memory_days = 10
 
 config = Config(
-    training_label="Mixed_RMSProp_RMSMomentum",
+    loss_fn_factory=partial(seasonless_loss, average_days=average_days, atmosphere_memory_days=atmosphere_memory_days),
+    initial_x_factory=seasonless_initial_x,
+    output_callback_factory=standard_output_callback,
+    training_trajectory_days=average_days + atmosphere_memory_days,
+    training_label="Mixed_RMSProp_RMSPropMomentum",
     stages=[
         Stage(
             method="RMSPropMomentum",
@@ -25,5 +35,5 @@ config = Config(
             ),
         ),
     ],
-    stage_loops=10,
+    stage_loops=1,
 )
