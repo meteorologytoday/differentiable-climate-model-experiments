@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 
 @dataclass
@@ -29,6 +29,13 @@ class Config:
     ])
     stage_loops: int = 1
 
+    # Factories — each is a callable (ModelContext) -> experiment-specific object.
+    # Defaults to equilibrium experiment factories; override in run_<name>.py.
+    # None triggers lazy import of the equilibrium defaults in __post_init__.
+    loss_fn_factory: Optional[Callable] = None
+    initial_x_factory: Optional[Callable] = None
+    output_callback_factory: Optional[Callable] = None
+
     # Experiment identity — used to construct output directory names
     simulation_label: str = "02-04_aquaplanet_equilibrium_with_1year_spinup_sst"
     training_label: str = "training"
@@ -38,6 +45,16 @@ class Config:
 
     def __post_init__(self):
         self.output_root = Path(self.output_root)
+        # Lazy import avoids a hard dependency on src/ at configs/base.py import time.
+        if self.loss_fn_factory is None:
+            from loss_init_pairs.seasonless import seasonless_loss
+            self.loss_fn_factory = seasonless_loss
+        if self.initial_x_factory is None:
+            from loss_init_pairs.seasonless import seasonless_initial_x
+            self.initial_x_factory = seasonless_initial_x
+        if self.output_callback_factory is None:
+            from callbacks import standard_output_callback
+            self.output_callback_factory = standard_output_callback
 
     @property
     def simulation_name(self) -> str:

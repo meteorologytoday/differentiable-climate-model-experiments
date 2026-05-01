@@ -1,6 +1,6 @@
 from configs.base import Config
 
-cfg = Config(
+config = Config(
     optimization_method="RMSProp",
     optimization_iterations=1000,
     optimization_callback_interval=10,

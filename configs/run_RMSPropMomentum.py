@@ -1,6 +1,6 @@
 from configs.base import Config, Stage
 
-cfg = Config(
+config = Config(
     training_label="Mixed_RMSProp_RMSMomentum",
     stages=[
         Stage(
