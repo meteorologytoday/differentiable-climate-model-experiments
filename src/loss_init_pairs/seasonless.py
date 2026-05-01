@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 
 
-def seasonless_loss(context, *, average_days, atmosphere_memory_days):
+def seasonless_loss(context, *, average_days):
     """
     Loss factory for the zonally symmetric, seasonless equilibrium search.
 

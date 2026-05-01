@@ -7,7 +7,7 @@ average_days = 30
 atmosphere_memory_days = 10
 
 config = Config(
-    loss_fn_factory=partial(seasonless_loss, average_days=average_days, atmosphere_memory_days=atmosphere_memory_days),
+    loss_fn_factory=partial(seasonless_loss, average_days=average_days),
     initial_x_factory=seasonless_initial_x,
     output_callback_factory=standard_output_callback,
     training_trajectory_days=average_days + atmosphere_memory_days,
