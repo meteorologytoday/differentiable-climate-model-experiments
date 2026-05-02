@@ -24,7 +24,7 @@ class Config:
 
     # Temporal
     training_trajectory_days: int = 40
-    spinup_interval_days: int = 40
+    spinup_interval_days: int = 365
     spinup_total_years: int = 20
     initial_condition_year: int = 1
 
