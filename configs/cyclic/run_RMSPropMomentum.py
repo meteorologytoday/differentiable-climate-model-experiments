@@ -22,5 +22,5 @@ config = Config(
             ),
         ),
     ],
-    stage_loops=1,
+    stage_loops=50,
 )

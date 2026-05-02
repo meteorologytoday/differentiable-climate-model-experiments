@@ -45,7 +45,7 @@ class Config:
 
     @property
     def simulation_name(self) -> str:
-        return f"{self.simulation_label}_{self.average_days:d}days_avg"
+        return f"{self.simulation_label}"
 
     @property
     def output_dir(self) -> Path:
