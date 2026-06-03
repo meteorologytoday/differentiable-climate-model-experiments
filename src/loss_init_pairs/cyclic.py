@@ -1,5 +1,5 @@
 import jax.numpy as jnp
-
+import jax
 
 def cyclic_loss(context):
     """
@@ -24,6 +24,10 @@ def cyclic_loss(context):
         final_carry, _ = trajectory_fn(carry)
         final_sst = final_carry["ocn"]["state"].sea_surface_temperature
         final_sst_zonal_mean = jnp.mean(final_sst, axis=0)
+        begin_sst_sum = jnp.sum(sst ** 2)
+        final_sst_sum = jnp.sum(final_sst ** 2)
+        jax.debug.print("DEBUG:begin_sst = {loss}", loss=begin_sst_sum)
+        jax.debug.print("DEBUG:final_sst = {loss}", loss=final_sst_sum)
         return jnp.sum((final_sst_zonal_mean - sst) ** 2)
 
     return loss
@@ -31,4 +35,5 @@ def cyclic_loss(context):
 
 def cyclic_initial_x(context):
     """Initial x: zonal mean of spinup SST, shape (lat,)."""
+    jax.debug.print("DEBUG:cyclic_initial_x is called")
     return jnp.mean(context.carry["ocn"]["state"].sea_surface_temperature, axis=0)

@@ -14,7 +14,7 @@ def stack_objects(objs: List):
 
 def scan_with_callback(f, init, xs, callback=None, callback_interval: int = 1):
     if len(xs) % callback_interval != 0:
-        raise ValueError("Length of xs must be multiple of callback_interval.")
+        raise ValueError(f"Length of xs ({len(xs)}) must be multiple of callback_interval ({callback_interval:d}).")
 
     carry = init
     batched_history = []
@@ -58,6 +58,7 @@ class RMSPropMomentum:
             square_dloss_dx = carry["square_dloss_dx"]
             square_dloss_dx = memory_factor_square_dloss_dx * square_dloss_dx + (1.0 - memory_factor_square_dloss_dx) * (dloss_dx**2)
             p = memory_factor_momentum * p - learning_rate / (divide_by_zero_tolerance + square_dloss_dx**0.5) * dloss_dx
+            jax.debug.print("DEBUG:length of momentum = {plen}", plen=jnp.sum(p**2))
             x = x + p
             new_carry = {'x': x, 'p': p, 'square_dloss_dx': square_dloss_dx}
             predictions = {
