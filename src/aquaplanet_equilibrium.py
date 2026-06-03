@@ -8,6 +8,9 @@ import time
 import functools
 
 import jax
+jax.config.update("jax_enable_x64", True)
+
+print("jax.config of jax_enable_x64: ", jax.config.read("jax_enable_x64"))
 import jax.numpy as jnp
 import numpy as np
 import orbax.checkpoint.experimental.v1 as ocp
