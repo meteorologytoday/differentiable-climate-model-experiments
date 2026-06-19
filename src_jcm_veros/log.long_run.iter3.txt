@@ -1,0 +1,59 @@
+Fri Jun 19 15:36:10 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 580.126.09             Driver Version: 580.126.09     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A40                     On  |   00000000:81:00.0 Off |                    0 |
+|  0%   42C    P8             22W /  300W |       4MiB /  46068MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+pwd: /home/tienyiao/projects_local/differentiable_model/differentiable-climate-model-experiments/src_jcm_veros
+Set PYTHONPATH to include jcm_v2.0 and corresponding dinosaur
+PYTHONPATH=/home/tienyiao/projects_local/project_jax-esm/jem_repo/jax-esm:/home/tienyiao/projects_local/project_jax-esm/jcm_collections/jax-gcm_v2_dev:/home/tienyiao/projects_local/project_jax-esm/veros-jittable:/home/tienyiao/projects_local/project_jax-esm/dinosaur_collections/dinosaur:
+Setting veros.runtime_settings...
+Importing core modules
+ Using computational backend jax on cpu
+  Kernels are compiled during first iteration, be patient
+ Runtime settings are now locked
+
+Veros path: /home/tienyiao/projects_local/project_jax-esm/veros-jittable/veros/__init__.py
+jcm library is located at: /home/tienyiao/projects_local/project_jax-esm/jcm_collections/jax-gcm_v2_dev/jcm/__init__.py
+jem library is located at: /home/tienyiao/projects_local/project_jax-esm/jem_repo/jax-esm/jem/__init__.py
+Available devices: [CudaDevice(id=0)]
+Number of devices: 1
+Using input data directory: "/home/tienyiao/.cache/jcm".
+Check file: /home/tienyiao/.cache/jcm/terrain_t31.nc... found.
+Check file: /home/tienyiao/.cache/jcm/forcing_t31.nc... found.
+Modifying reference jcm terrain file: /home/tienyiao/.cache/jcm/terrain_t31.nc
+Target output file: /home/tienyiao/projects_local/differentiable_model/differentiable-climate-model-experiments/src_jcm_veros/data/terrain_double_drake.nc
+Loaded xarray metadata
+<xarray.Dataset> Size: 75kB
+Dimensions:  (lon: 96, lat: 48)
+Coordinates:
+  * lon      (lon) float64 768B 0.0 3.75 7.5 11.25 ... 345.0 348.8 352.5 356.2
+  * lat      (lat) float64 384B -87.16 -83.48 -79.78 ... 79.78 83.48 87.16
+    lev      float64 8B ...
+Data variables:
+    lsm      (lon, lat) float64 37kB ...
+    orog     (lon, lat) float64 37kB ...
+Attributes:
+    CDI:          Climate Data Interface version 1.7.1 (http://mpimet.mpg.de/...
+    CDO:          Climate Data Operators version 1.7.1 (http://mpimet.mpg.de/...
+    grid_type:    gaussian
+    history:      Sun Apr 21 21:26:01 2019: cdo -f nc import_binary stl.ctl s...
+    Conventions:  CF-1.5
+Writing result to: /home/tienyiao/projects_local/differentiable_model/differentiable-climate-model-experiments/src_jcm_veros/data/terrain_double_drake.nc
+Running model setup
+FutureWarning: scatter inputs have incompatible types: cannot safely cast value from dtype=float64 to dtype=int32 with jax_numpy_dtype_promotion=standard. In future JAX releases this will result in an error. (/home/tienyiao/miniconda3/envs/jax/lib/python3.13/site-packages/jax/_src/ops/scatter.py:104)
+Initializing streamfunction method

@@ -13,3 +13,10 @@ env/
 *.nc
 *.png
 *.svg
+core-*
+*.out
+*.log
+*.h5
+*.pkl
+output_T*/
+.jax_cache/
