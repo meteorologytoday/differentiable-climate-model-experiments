@@ -31,10 +31,11 @@ from jem.utils.checkpoints import (
     save_veros_carry, load_veros_carry,
 )
 
-from training_tools.optimizers import HamitonianMethod, RMSProp, RMSPropMomentum, LBFGS
+from training_tools.optimizers import HamitonianMethod, RMSProp, RMSPropMomentum, LBFGS, pack
 from training_tools.model_context import ModelContext
 
 from coupled_jcm_veros_model_setup import build_model
+from jcm_helper import freeze_solar_at
 
 jax.config.update("jax_compilation_cache_dir", "./.jax_cache")
 print("Devices: ", jax.devices())
@@ -93,6 +94,9 @@ if __name__ == "__main__":
         int(initial_condition_time / spinup_trajectory_interval) - 1
     )
 
+    # Fix solar geometry at the vernal equinox so NH and SH receive equal insolation.
+    freeze_solar_at("2000-03-20", calendar=calendar)
+
     # Build the coupled JCM + Veros + SlabOceanModel system. Packaged as a
     # function in `model_setup.py` so that other scripts (e.g. a jax.grad
     # sensitivity experiment) can build exactly the same model.
@@ -120,12 +124,12 @@ if __name__ == "__main__":
 
     training_trajectory_function = model.generate_trajectory_function(
         iterations = int(training_trajectory_interval / coupling_timestep),
+        checkpoint=True,
         **shared_setting,
     )
 
     # Spin-up model
-    # I want atmosphere to be turbulent to start with. So I need to spin-up the model for about 30 days.
-
+    
     print(f"Check the target spin-up checkpoint file {str(target_spinup_checkpoint_file)}")
     if target_spinup_checkpoint_file.exists():
         print(f"Target spin-up checkpoint file exists.")
@@ -172,7 +176,10 @@ if __name__ == "__main__":
     )
 
     loss_function = config.loss_fn_factory(context)
-    output_callback = config.output_callback_factory(context)
+    initial_x = config.initial_x_factory(context)
+    flat_initial_x, unpack = pack(initial_x)
+    flat_loss_function = lambda flat: loss_function(unpack(flat))
+    output_callback = config.output_callback_factory(context, unpack_function=unpack)
 
     _optimizer_classes = {
         "HamitonianMethod": HamitonianMethod,
@@ -187,13 +194,13 @@ if __name__ == "__main__":
 
     # Build optimizer instances once so JIT-compiled step functions are reused across loops
     _optimizer_instances = [
-        _optimizer_classes[stage.method](loss_function, **stage.optimizer_kwargs)
+        _optimizer_classes[stage.method](flat_loss_function, **stage.optimizer_kwargs)
         for stage in config.stages
     ]
 
     print("Running Optimization...")
     start_time = time.perf_counter()
-    current_x = config.initial_x_factory(context)
+    current_x = flat_initial_x
     for loop_idx in range(config.stage_loops):
         for stage_idx, (stage, optimizer) in enumerate(zip(config.stages, _optimizer_instances)):
             print(f"Loop {loop_idx}, stage {stage_idx}: {stage.method} for {stage.iterations} iterations")

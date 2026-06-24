@@ -18,11 +18,14 @@ def get_ocean_salinity(ocn_state):
     return vs.salt[g:-g, g:-g, :, vs.tau]
 
 def set_ocean_temperature(ocn_state, temp):
-    """Functionally overwrite the ocean's prognostic temperature [K]."""
+    """Functionally overwrite the ocean's prognostic temperature [K].
+
+    temp shape: (nlon, nlat, nz) — all depth levels.
+    """
     vs = ocn_state.variables
     g = _OCEAN_GHOST_CELL
     with vs.unlock():
-        vs.temp = update(vs.temp, at[g:-g, g:-g, -1, vs.tau], temp - 273.15)
+        vs.temp = update(vs.temp, at[g:-g, g:-g, :, vs.tau], temp - 273.15)
     return ocn_state
 
 def set_ocean_salinity(ocn_state, salt):
@@ -30,7 +33,7 @@ def set_ocean_salinity(ocn_state, salt):
     vs = ocn_state.variables
     g = _OCEAN_GHOST_CELL
     with vs.unlock():
-        vs.salt = update(vs.salt, at[g:-g, g:-g, -1, vs.tau], salt)
+        vs.salt = update(vs.salt, at[g:-g, g:-g, :, vs.tau], salt)
     return ocn_state
 
 def get_ocean_surface_temperature(ocn_state):

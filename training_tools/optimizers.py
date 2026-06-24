@@ -6,6 +6,20 @@ import jax.numpy as jnp
 import optax
 
 
+def pack(params):
+    """Flatten a pytree of arrays into a single 1D vector.
+
+    Returns (flat, unpack) where unpack(flat) reconstructs the original
+    pytree structure.  Both are JAX-compatible and work under jit/grad.
+
+    Example:
+        flat, unpack = pack(params)
+        params_back = unpack(flat)
+    """
+    flat, unpack = jax.flatten_util.ravel_pytree(params)
+    return flat, unpack
+
+
 def stack_objects(objs: List):
     """Stack a list of pytrees with the same structure into a single pytree."""
     stacked = jax.tree_util.tree_map(lambda *xs: jnp.stack(xs), *objs)
