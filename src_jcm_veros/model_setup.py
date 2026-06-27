@@ -37,6 +37,7 @@ def build_model(
     veros_dt_mom=3600.0,
     veros_dt_tracer=3600.0,
     jcm_dt=1800.0,
+    number_of_ocean_layers=None,
     debug_mode=False,
 ):
     """Build the coupled JCM + Veros + SlabOceanModel system.
@@ -45,6 +46,8 @@ def build_model(
     models and supporting objects (e.g. `ocn_model`, needed by Veros'
     checkpoint loader), so that callers can build exactly the same model.
     """
+
+
 
     coords = get_speedy_coords(spectral_truncation=truncation_number)
 
@@ -82,6 +85,7 @@ def build_model(
         land_sea_mask_file=modified_jcm_terrain_file,
         dt_mom=veros_dt_mom,
         dt_tracer=veros_dt_tracer,
+        ddz=[50.0, 70.0, 100.0, 140.0, 190.0, 240.0, 290.0, 340.0, 390.0, 440.0, 490.0, 540.0, 590.0, 640.0, 690.0][:number_of_ocean_layers],
     )()
     ocn_model.setup()
     Veros.make_jem_compatible(ocn_model, coupling_timestep=coupling_timestep)
