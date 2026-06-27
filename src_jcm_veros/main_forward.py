@@ -35,6 +35,8 @@ parser.add_argument("--truncation-number", type=int, help="Truncation number", d
 parser.add_argument("--jcm-timestep-min", type=int, help="JCM timestep in minutes", default=30)
 parser.add_argument("--veros-timestep-min", type=int, help="Veros timestep in minutes", default=60)
 parser.add_argument("--do-not-average-time", action="store_true", help="Do not average time dimension for each interval.")
+parser.add_argument("--max-rerun-attempts", type=int, help="If model exploded, then the model would rerun because stochasticitiy might bypass the instability next time. This value is by default 0, but if you set any positive integer number, model will rerun N times before it gave up.", default=0)
+parser.add_argument("--explode-log", type=str, help="Path to log file for recording model explosion events.", default="explode.log")
 parser.add_argument("--debug-mode", action="store_true", help="Turn on debug mode. Detect NaN and enter breakpoint.")
 parser.add_argument("--terrain-planet-type", type=str, help="Simulation name for output", required=True)
 args = parser.parse_args()
@@ -99,24 +101,37 @@ if resume_batch == batches:
 for b in range(resume_batch, batches):
     
     print(f"[batch={b:d}/{batches:d}] Simulation...")
- 
-    _, final_carry, predictions = model.run(
-        initial_carry = initial_carry,
-        workflow=config["workflow"],
-        iterations = int(simulation_interval / coupling_timestep),
-        jitted=True,
-        reuse_last_available_trajectory=True,
-    )
-    
-    output_dict = model.predictions_to_xarray(predictions)
 
-    if not args.do_not_average_time:
-        for component_name, ds in output_dict.items():
-            output_dict[component_name] = ds.reduce(np.mean, dim="time", keepdims=True)
- 
-    if jnp.any( jnp.isnan(output_dict["atm"]["specific_humidity"].to_numpy()) ):
-        print("Error: Model exploded. End program")
-        break
+    # The model might explode due to instability. However, since GPU simulation is in general
+    # non-deterministic, the re-run might by pass the instability. So, I provide the option
+    # --max-rerun-attempts to allow such rerun
+    total_attempts = 1 + args.max_rerun_attempts
+    for run_attempt in range(total_attempts): 
+        _, final_carry, predictions = model.run(
+            initial_carry = initial_carry,
+            workflow=config["workflow"],
+            iterations = int(simulation_interval / coupling_timestep),
+            jitted=True,
+            reuse_last_available_trajectory=True,
+        )
+        
+        output_dict = model.predictions_to_xarray(predictions)
+
+        if not args.do_not_average_time:
+            for component_name, ds in output_dict.items():
+                output_dict[component_name] = ds.reduce(np.mean, dim="time", keepdims=True)
+     
+        if jnp.all( jnp.isfinite(output_dict["atm"]["specific_humidity"].to_numpy()) ):
+            print("All values of humidity are finite. Model does not explode.")
+            break
+        else:
+            msg = f"batch={b:d}, attempt={run_attempt+1:d}/{total_attempts:d}: model exploded (non-finite humidity)"
+            print(f"Error: {msg}")
+            with open(args.explode_log, "a") as f:
+                f.write(msg + "\n")
+            if run_attempt == total_attempts - 1:
+                print(f"Error: Model exploded on all {total_attempts} attempt(s). Moving on.")
+
 
     for component_name, ds in output_dict.items():
         output_file = output_dir / f"{component_name:s}-{b:05d}.nc"
