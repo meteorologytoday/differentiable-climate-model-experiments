@@ -127,7 +127,7 @@ for b in range(resume_batch, batches):
         else:
             msg = f"batch={b:d}, attempt={run_attempt+1:d}/{total_attempts:d}: model exploded (non-finite humidity)"
             print(f"Error: {msg}")
-            with open(args.explode_log, "a") as f:
+            with open(output_dir / args.explode_log, "a") as f:
                 f.write(msg + "\n")
             if run_attempt == total_attempts - 1:
                 print(f"Error: Model exploded on all {total_attempts} attempt(s). Moving on.")
