@@ -106,6 +106,7 @@ for b in range(resume_batch, batches):
     # non-deterministic, the re-run might by pass the instability. So, I provide the option
     # --max-rerun-attempts to allow such rerun
     total_attempts = 1 + args.max_rerun_attempts
+    model_failed = False
     for run_attempt in range(total_attempts): 
         _, final_carry, predictions = model.run(
             initial_carry = initial_carry,
@@ -130,8 +131,8 @@ for b in range(resume_batch, batches):
             with open(output_dir / args.explode_log, "a") as f:
                 f.write(msg + "\n")
             if run_attempt == total_attempts - 1:
-                print(f"Error: Model exploded on all {total_attempts} attempt(s). Moving on.")
-
+                print(f"Error: Model exploded on all {total_attempts} attempt(s). Exit program.")
+                sys.exit(1) 
 
     for component_name, ds in output_dict.items():
         output_file = output_dir / f"{component_name:s}-{b:05d}.nc"
