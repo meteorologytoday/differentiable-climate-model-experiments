@@ -205,19 +205,23 @@ def build_model(
         atm["forcing"].sea_surface_temperature = veros_to_jcm_regridder(ocn["derived"]["sea_surface_temperature"])
         atm["forcing"].stl_am = fakelnd["state"]["sea_surface_temperature"]
 
-        # Debug: report wind speed (atm), ocean velocity, and stratification (ocn) extremes
-        vs_ocn = ocn["state"].variables
-        jax.debug.print(
-            "max|wind_u| (atm) = {wu:.6e}, max|wind_v| (atm) = {wv:.6e}, "
-            "max|u| (ocn) = {ou:.6e}, max|v| (ocn) = {ov:.6e}, min(Nsqr) (ocn) = {nsqr:.6e}",
-            wu=jnp.max(jnp.abs(wind_x)),
-            wv=jnp.max(jnp.abs(wind_y)),
-            ou=jnp.max(jnp.abs(vs_ocn.u[..., vs_ocn.tau])),
-            ov=jnp.max(jnp.abs(vs_ocn.v[..., vs_ocn.tau])),
-            nsqr=jnp.min(vs_ocn.Nsqr[..., vs_ocn.tau]),
-        )
 
         if debug_mode:
+
+            print("Notice: debug_mode is on.")
+
+            # Debug: report wind speed (atm), ocean velocity, and stratification (ocn) extremes
+            vs_ocn = ocn["state"].variables
+            jax.debug.print(
+                "max|wind_u| (atm) = {wu:.6e}, max|wind_v| (atm) = {wv:.6e}, "
+                "max|u| (ocn) = {ou:.6e}, max|v| (ocn) = {ov:.6e}, min(Nsqr) (ocn) = {nsqr:.6e}",
+                wu=jnp.max(jnp.abs(wind_x)),
+                wv=jnp.max(jnp.abs(wind_y)),
+                ou=jnp.max(jnp.abs(vs_ocn.u[..., vs_ocn.tau])),
+                ov=jnp.max(jnp.abs(vs_ocn.v[..., vs_ocn.tau])),
+                nsqr=jnp.min(vs_ocn.Nsqr[..., vs_ocn.tau]),
+            )
+
             # Debug model explosion
             def breakpoint_if_nonfinite(x):
                 all_finite = is_pytree_all_finite(x)
