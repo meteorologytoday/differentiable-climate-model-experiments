@@ -33,7 +33,7 @@ parser.add_argument("--simulation-interval-days", type=int, help="Simulation int
 parser.add_argument("--simulation-name", type=str, help="Simulation name for output", default="default")
 parser.add_argument("--truncation-number", type=int, help="Truncation number", default=31)
 parser.add_argument("--jcm-timestep-min", type=int, help="JCM timestep in minutes", default=30)
-parser.add_argument("--veros-timestep-min", type=int, help="Veros timestep in minutes", default=60)
+parser.add_argument("--veros-timestep-min", type=int, help="Veros timestep in minutes", default=30)
 parser.add_argument("--do-not-average-time", action="store_true", help="Do not average time dimension for each interval.")
 parser.add_argument("--max-rerun-attempts", type=int, help="If model exploded, then the model would rerun because stochasticitiy might bypass the instability next time. This value is by default 0, but if you set any positive integer number, model will rerun N times before it gave up.", default=0)
 parser.add_argument("--explode-log", type=str, help="Path to log file for recording model explosion events.", default="explode.log")
@@ -118,12 +118,15 @@ for b in range(resume_batch, batches):
         
         output_dict = model.predictions_to_xarray(predictions)
 
-        if not args.do_not_average_time:
-            for component_name, ds in output_dict.items():
-                output_dict[component_name] = ds.reduce(np.mean, dim="time", keepdims=True)
-     
-        if jnp.all( jnp.isfinite(output_dict["atm"]["specific_humidity"].to_numpy()) ):
+    
+        model_is_stable = jnp.all( jnp.isfinite(output_dict["atm"]["specific_humidity"].to_numpy()) )
+
+        if model_is_stable:
             print("All values of humidity are finite. Model does not explode.")
+            if not args.do_not_average_time:
+                for component_name, ds in output_dict.items():
+                    output_dict[component_name] = ds.reduce(np.mean, dim="time", keepdims=True)
+
             break
         else:
             msg = f"batch={b:d}, attempt={run_attempt+1:d}/{total_attempts:d}: model exploded (non-finite humidity)"
@@ -131,8 +134,18 @@ for b in range(resume_batch, batches):
             with open(output_dir / args.explode_log, "a") as f:
                 f.write(msg + "\n")
             if run_attempt == total_attempts - 1:
-                print(f"Error: Model exploded on all {total_attempts} attempt(s). Exit program.")
+                print(f"Error: Model exploded on all {total_attempts:d} attempt(s).")
+                print("Output un-averaged results for debugging.")
+                for component_name, ds in output_dict.items():
+                    output_file = output_dir / f"exploded_{component_name:s}-{b:05d}.nc"
+                    print("Output file: ", str(output_file))
+                    ds.to_netcdf(output_file, unlimited_dims="time", engine="netcdf4")
+                    ds.close()
+                 
+                print("Exit program.")
                 sys.exit(1) 
+
+
 
     for component_name, ds in output_dict.items():
         output_file = output_dir / f"{component_name:s}-{b:05d}.nc"
