@@ -58,7 +58,7 @@ class Measure:
         self,
         data_file,
         *,
-        tangent_sst_initial,
+        tangent_temp_initial,
         tangent_measure,
         ensemble,
     ):
@@ -67,7 +67,7 @@ class Measure:
         independently from the (expensive) simulation."""
 
         data_vars = {
-            "tangent_sst_initial": (("lon", "lat"), np.asarray(tangent_sst_initial))
+            "tangent_temp_initial": (("lon", "lat", "depth"), np.asarray(tangent_temp_initial))
         }
 
         for i, (varname, varspec) in enumerate(self.variable_specs.items()):
