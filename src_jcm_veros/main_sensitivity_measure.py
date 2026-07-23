@@ -19,7 +19,7 @@ import jem.utils.tree_tools as tree_tools
 
 from model_setup import build_model
 from veros_helper import get_ocean_temperature, set_ocean_temperature
-from sensitivity_measures import MEASURES
+from sensitivity_measures import MEASURES, compose_measures
 
 
 print(f"jcm library is located at: {jcm.__file__}")
@@ -51,11 +51,12 @@ if __name__ == "__main__":
     parser.add_argument("--terrain-planet-type", type=str, help="Simulation name for output", required=True)
     parser.add_argument("--test-ensemble-members", type=int, nargs="+", help="The ensemble members to be used", default=[1])
     parser.add_argument("--output-filename", type=str, help="The result in netcdf file.", default="sensitivity_data.nc")
-    parser.add_argument("--measure", type=str, choices=sorted(MEASURES.keys()), default="ocean_temperature_zonal_mean",
-                         help="Which diagnostic to compute the sensitivity of.")
+    parser.add_argument("--measure", type=str, nargs="+", choices=sorted(MEASURES.keys()), default=["ocean_temperature_zonal_mean"],
+                         help="Which diagnostic(s) to compute the sensitivity of. Passing more than one "
+                              "computes all of them from a single shared simulation.")
     args = parser.parse_args()
 
-    measure = MEASURES[args.measure]
+    measure = compose_measures(*[MEASURES[name] for name in args.measure])
 
     # Configurations
     start_datetime = jdt.to_datetime("2000-01-01")
@@ -151,8 +152,9 @@ if __name__ == "__main__":
         # `temp_initial` spans the full water column (lon, lat, depth), so the
         # lon/lat Gaussian bump is broadcast uniformly over depth before being
         # normalized to unit L2 norm.
-        tangent_pattern_2d = gaussian(llon, llat, 180.0, 0.0, 5, 8)
-        tangent_temp_initial = jnp.broadcast_to(tangent_pattern_2d[:, :, None], temp_initial.shape)
+        tangent_temp_initial = jnp.zeros_like(temp_initial)
+        
+        tangent_temp_initial = tangent_temp_initial.at[:, :, 0].set(gaussian(llon, llat, 180.0, 0.0, 5, 8))
         tangent_temp_initial = tangent_temp_initial / jnp.sum(tangent_temp_initial**2)**0.5
 
         # Use jax.jvp to obtain the sensitivity of `measure` to the temperature perturbation.
@@ -164,7 +166,8 @@ if __name__ == "__main__":
             (tangent_temp_initial, None, None, None),
         )
 
-        report_tangent(f"tangent_{args.measure} (jvp)", tangent_measure)
+        for varname, tangent in zip(measure.variable_specs.keys(), tangent_measure):
+            report_tangent(f"tangent_{varname} (jvp)", tangent)
 
         print("Compute sensitivity using direct method")
         epsilon = 0.01

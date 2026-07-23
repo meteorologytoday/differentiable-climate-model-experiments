@@ -22,7 +22,7 @@ import jax.numpy as jnp
 import xarray as xr
 import matplotlib.pyplot as plt
 
-from model_setup import _OCEAN_GHOST_CELL
+from veros_helper import _OCEAN_GHOST_CELL
 
 
 def symmetric_levels(*arrays, n=11, n_std=2.0):
@@ -90,6 +90,29 @@ class Measure:
         print(f"Saving simulation output into: {data_file}")
         ds.to_netcdf(data_file)
 
+def compose_measures(*measures):
+    """Combine several `Measure`s into one, so a single jax.jvp/ensemble
+    run can produce all of their diagnostics from one shared trajectory
+    instead of rerunning the (expensive) simulation once per measure.
+
+    Each sub-measure's `compute` is called on the same
+    `(coupled_carry, predictions)`; the resulting tuples are concatenated
+    in `measures` order, and `variable_specs` are merged the same way, so
+    `Measure.save` writes every variable out unmodified.
+    """
+    variable_specs = {}
+    for m in measures:
+        variable_specs.update(m.variable_specs)
+
+    def compute(coupled_carry, predictions):
+        results = ()
+        for m in measures:
+            results += m.compute(coupled_carry, predictions)
+        return results
+
+    return Measure(variable_specs=variable_specs, compute=compute)
+
+
 # ---------------------------------------------------------------------------
 # Concrete measures
 # ---------------------------------------------------------------------------
@@ -128,12 +151,67 @@ def _sea_surface_temperature(coupled_carry, predictions):
     # this measure currently has only one variable.
     return (masked_zonal_mean(temp, mask, axis=0),)
 
+def _ocean_temperature(coupled_carry, predictions):
+    g = _OCEAN_GHOST_CELL
+    vs = coupled_carry["ocn"]["state"].variables
+    temp = vs.temp[g:-g, g:-g, :, vs.tau]
+    return (temp,)
+
+
 OCEAN_TEMPERATURE_ZONAL_MEAN = Measure(
     variable_specs=dict(ocean_temperature_zonal_mean = dict(dims=["latitude", "depth"])),
     compute=_ocean_temperature_zonal_mean,
 )
 
+OCEAN_TEMPERATURE = Measure(
+    variable_specs=dict(ocean_temperature = dict(dims=["longitude", "latitude", "depth"])),
+    compute=_ocean_temperature,
+)
+
+
+def _ocean_northward_heat_transport(coupled_carry, predictions):
+    """Northward ocean heat transport [W] as a function of latitude,
+    integrated zonally and over depth.
+
+    Mirrors the meridional-transport pattern used by Veros' own
+    `overturning` diagnostic (`dxt * cosu * v * dzt`, masked by `maskV`;
+    see `veros.diagnostics.overturning.diagnose_kernel`), but multiplies by
+    temperature -- averaged from consecutive T-points onto the intervening
+    V-point the same way that diagnostic interpolates density onto V-faces
+    -- and by `rho_0 * cp_0` to get a heat flux instead of a volume
+    transport.
+    """
+    g = _OCEAN_GHOST_CELL
+    ocn_state = coupled_carry["ocn"]["state"]
+    vs = ocn_state.variables
+    rho_0 = ocn_state.settings.rho_0
+    cp_0 = 3991.86795711963  # J / (kg K); Veros hardcodes this per-setup, there is no settings.cp_0
+
+    # Average temperature at consecutive T-points (j, j+1) onto the
+    # intervening V-point, matching the latitude range of `v`/`maskV` ([g:-g]).
+    temp_face = 0.5 * (
+        vs.temp[g:-g, g:-g, :, vs.tau] + vs.temp[g:-g, g + 1:-g + 1, :, vs.tau]
+    )
+    v = vs.v[g:-g, g:-g, :, vs.tau]
+    mask = vs.maskV[g:-g, g:-g, :]
+
+    fac = vs.dxt[g:-g, None, None] * vs.cosu[None, g:-g, None] * vs.dzt[None, None, :]
+    heat_flux = rho_0 * cp_0 * v * temp_face * mask * fac
+
+    # Sum over longitude (axis 0) and depth (axis 2), leaving a function
+    # of latitude (the ocean's V-grid) only. Returned as a 1-tuple so the
+    # output lines up positionally with `variable_specs`.
+    return (jnp.sum(heat_flux, axis=(0, 2)),)
+
+
+OCEAN_NORTHWARD_HEAT_TRANSPORT = Measure(
+    variable_specs=dict(ocean_northward_heat_transport=dict(dims=["latitude"])),
+    compute=_ocean_northward_heat_transport,
+)
+
 
 MEASURES = {
+    "ocean_temperature": OCEAN_TEMPERATURE,
     "ocean_temperature_zonal_mean": OCEAN_TEMPERATURE_ZONAL_MEAN,
+    "ocean_northward_heat_transport": OCEAN_NORTHWARD_HEAT_TRANSPORT,
 }
